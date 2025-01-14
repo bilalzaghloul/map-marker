@@ -74,7 +74,6 @@
         </div>
         <script src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"></script>
         <script>
-            // Define makeDraggable function first
             function makeDraggable(element) {
                 let pos1 = 0,
                     pos2 = 0,
@@ -259,7 +258,6 @@
                     const progressBar = document.getElementById('progressBar');
                     const loadingProgress = document.getElementById('loadingProgress');
 
-                    // Initialize draggable functionality before showing the loading indicator
                     makeDraggable(loadingIndicator);
                     loadingIndicator.style.display = 'block';
 
