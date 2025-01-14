@@ -58,19 +58,20 @@
                     });
 
                     let currentInfoWindow = null;
-                    const markers = [];
-
-                    const maxMarkersPerBatch = 200; // Limit the number of markers added at once
+                    const maxMarkersPerBatch = 100; // Limit markers added at a time to avoid crash
                     let index = 0;
 
                     function addMarkersBatch() {
                         const batch = markersData.slice(index, index + maxMarkersPerBatch);
-                        batch.forEach((markerInfo) => {
+                        const bounds = new google.maps.LatLngBounds();
+                        const markers = batch.map((markerInfo) => {
                             const marker = new google.maps.Marker({
                                 position: { lat: markerInfo.latitude, lng: markerInfo.longitude },
                                 map: map,
                                 title: `Internal ID: ${markerInfo.Internal_ID}`,
                             });
+
+                            bounds.extend(marker.getPosition());
 
                             const infoWindow = new google.maps.InfoWindow({
                                 content: `<div style="max-width: 200px; max-height: 300px; overflow-y: auto; line-height: 1.0;">
@@ -91,12 +92,14 @@
                                 currentInfoWindow = infoWindow;
                             });
 
-                            markers.push(marker);
+                            return marker;
                         });
 
                         index += maxMarkersPerBatch;
                         if (index < markersData.length) {
-                            requestAnimationFrame(addMarkersBatch); // Continue loading markers in batches
+                            setTimeout(addMarkersBatch, 200); // Add a slight delay to avoid browser freezing
+                        } else {
+                            map.fitBounds(bounds);
                         }
                     }
 
