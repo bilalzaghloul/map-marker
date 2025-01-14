@@ -42,8 +42,8 @@
     <body>
         <div id="map"></div>
         <button id="myLocationButton">My Location</button>
-        <!-- Add MarkerClusterer before the main script -->
-        <script src="https://unpkg.com/@googlemaps/markerclusterer@2.5.1/dist/index.min.js"></script>
+        <!-- Using the legacy MarkerClusterer version -->
+        <script src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"></script>
         <script>
             async function initMap() {
                 try {
@@ -63,23 +63,18 @@
                         minZoom: 3,
                     });
 
-                    // Create a MarkerClusterer instance
-                    const markerClusterer = new MarkerClusterer(map, [], {
-                        imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
-                        maxZoom: 15,
-                        minimumClusterSize: 5,
-                    });
-
                     let currentInfoWindow = null;
                     const markers = [];
                     const bounds = new google.maps.LatLngBounds();
 
-                    // Implement marker clustering and viewport-based rendering
-                    function createMarker(markerInfo) {
+                    // Create markers in viewport
+                    const visibleMarkers = markersData.map((markerInfo) => {
                         const marker = new google.maps.Marker({
                             position: { lat: markerInfo.latitude, lng: markerInfo.longitude },
                             title: `Internal ID: ${markerInfo.Internal_ID}`,
                         });
+
+                        bounds.extend(marker.getPosition());
 
                         const infoWindow = new google.maps.InfoWindow({
                             content: `<div style="max-width: 200px; max-height: 300px; overflow-y: auto; line-height: 1.0;">
@@ -101,59 +96,18 @@
                         });
 
                         return marker;
-                    }
-
-                    // Initialize QuadTree for spatial indexing
-                    const quadTree = new QuadTree({
-                        x: -180,
-                        y: -90,
-                        width: 360,
-                        height: 180,
                     });
 
-                    // Add markers to QuadTree
-                    markersData.forEach((markerInfo, index) => {
-                        quadTree.insert({
-                            x: markerInfo.longitude,
-                            y: markerInfo.latitude,
-                            data: markerInfo,
-                        });
+                    // Initialize MarkerClusterer
+                    const markerCluster = new MarkerClusterer(map, visibleMarkers, {
+                        imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
+                        gridSize: 50,
+                        minimumClusterSize: 3,
+                        maxZoom: 15,
                     });
 
-                    // Function to update visible markers based on viewport
-                    function updateVisibleMarkers() {
-                        const bounds = map.getBounds();
-                        if (!bounds) return;
-
-                        const ne = bounds.getNorthEast();
-                        const sw = bounds.getSouthWest();
-
-                        // Query QuadTree for points in viewport
-                        const viewportPoints = quadTree.query({
-                            x: sw.lng(),
-                            y: sw.lat(),
-                            width: ne.lng() - sw.lng(),
-                            height: ne.lat() - sw.lat(),
-                        });
-
-                        // Remove existing markers from clusterer
-                        markerClusterer.clearMarkers();
-
-                        // Create new markers for visible points
-                        const newMarkers = viewportPoints.map((point) => createMarker(point.data));
-
-                        // Add new markers to clusterer
-                        markerClusterer.addMarkers(newMarkers);
-                    }
-
-                    // Add event listeners for map movement
-                    map.addListener('idle', updateVisibleMarkers);
-                    map.addListener('zoom_changed', () => {
-                        // Clear markers if zoom level is too low
-                        if (map.getZoom() < 8) {
-                            markerClusterer.clearMarkers();
-                        }
-                    });
+                    // Fit map to bounds
+                    map.fitBounds(bounds);
 
                     // Handle user location
                     const myLocationButton = document.getElementById('myLocationButton');
@@ -193,68 +147,6 @@
                 } catch (error) {
                     console.error('Error loading marker data:', error);
                     alert('Error loading marker data: ' + error.message);
-                }
-            }
-
-            // Simple QuadTree implementation
-            class QuadTree {
-                constructor(bounds, capacity = 4) {
-                    this.bounds = bounds;
-                    this.capacity = capacity;
-                    this.points = [];
-                    this.divided = false;
-                }
-
-                subdivide() {
-                    const x = this.bounds.x;
-                    const y = this.bounds.y;
-                    const w = this.bounds.width / 2;
-                    const h = this.bounds.height / 2;
-
-                    this.northwest = new QuadTree({ x: x, y: y, width: w, height: h });
-                    this.northeast = new QuadTree({ x: x + w, y: y, width: w, height: h });
-                    this.southwest = new QuadTree({ x: x, y: y + h, width: w, height: h });
-                    this.southeast = new QuadTree({ x: x + w, y: y + h, width: w, height: h });
-
-                    this.divided = true;
-                }
-
-                insert(point) {
-                    if (!this.bounds.contains(point)) {
-                        return false;
-                    }
-
-                    if (this.points.length < this.capacity) {
-                        this.points.push(point);
-                        return true;
-                    }
-
-                    if (!this.divided) {
-                        this.subdivide();
-                    }
-
-                    return this.northwest.insert(point) || this.northeast.insert(point) || this.southwest.insert(point) || this.southeast.insert(point);
-                }
-
-                query(range, found = []) {
-                    if (!this.bounds.intersects(range)) {
-                        return found;
-                    }
-
-                    for (const point of this.points) {
-                        if (range.contains(point)) {
-                            found.push(point);
-                        }
-                    }
-
-                    if (this.divided) {
-                        this.northwest.query(range, found);
-                        this.northeast.query(range, found);
-                        this.southwest.query(range, found);
-                        this.southeast.query(range, found);
-                    }
-
-                    return found;
                 }
             }
         </script>
