@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Noor2 Assets</title>
+  </head>
+  <body>
+    <div id="map" style="height: 800px; width: 100%;"></div>
+    <button id="myLocationButton" style="position: absolute; top: 20px; left: 200px; z-index: 5;">My Location</button>
+    <script>
+      function initMap() {
+        const map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 10,
+          center: { lat: 24.440919168357084, lng: 54.66783553469268 },
+          mapId: "665db00bdf39b50f"
+        });
+
+        // Data
+        const markersData = [];
+        const heatmapData = markersData.map(point => new google.maps.LatLng(point.latitude, point.longitude));
+        
+        // Create markers and info windows for each location
+        let currentInfoWindow = null; // Track the currently open info window
+        
+        // Create the heatmap
+        const heatmap = new google.maps.visualization.HeatmapLayer({
+          data: heatmapData,
+          map: map,
+          radius: 20
+        });
+
+        // Create markers
+        const markers = markersData.map(markerInfo => {
+          const marker = new google.maps.Marker({
+            position: { lat: markerInfo.latitude, lng: markerInfo.longitude },
+            title: `Internal ID: ${markerInfo.Internal_ID}`
+          });
+
+          const infoWindow = new google.maps.InfoWindow({
+            content: `<div style="max-width: 200px; max-height: 300px; overflow-y: auto; line-height: 1.0;">
+                        <h3 style="margin: 4px 0;">Internal ID: ${markerInfo.Internal_ID}</h3>
+                        <p style="margin: 4px 0;">Phase: ${markerInfo.Phase}</p>
+                        <p style="margin: 4px 0;">Zone: ${markerInfo.Zone}</p>
+                        <p style="margin: 4px 0;">Fixture Height: ${markerInfo.Fixture_Height}</p>
+                        <p style="margin: 4px 0;">Fixtures Per Pole: ${markerInfo.Fixtures_Per_Pole}</p>
+                        <p style="margin: 4px 0;">Part Number: ${markerInfo.Part_Number}</p>
+                      </div>`
+          });
+
+          marker.addListener("click", () => {
+            // Close the previously open info window, if any
+            if (currentInfoWindow) {
+              currentInfoWindow.close();
+            }
+
+            // Open the new info window
+            infoWindow.open({
+              anchor: marker,
+              map: map
+            });
+
+            // Set the current info window to this one
+            currentInfoWindow = infoWindow;
+          });
+
+          return marker;
+        });
+
+        // Function to toggle heatmap and markers based on zoom level
+        function toggleHeatmapAndMarkers() {
+          const zoomLevel = map.getZoom();
+          if (zoomLevel > 15) {
+            heatmap.setMap(null); // Hide heatmap
+            markers.forEach(marker => marker.setMap(map)); // Show markers
+          } else {
+            heatmap.setMap(map); // Show heatmap
+            markers.forEach(marker => marker.setMap(null)); // Hide markers
+          }
+        }
+
+        // Listen to zoom changes
+        map.addListener("zoom_changed", toggleHeatmapAndMarkers);
+
+        // Initial toggle
+        toggleHeatmapAndMarkers();
+      // Handle "Go to My Location" button click
+        const myLocationButton = document.getElementById("myLocationButton");
+        myLocationButton.addEventListener("click", () => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+              const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              map.setCenter(userLocation);
+              map.setZoom(15);
+
+              // Add a marker for the user's location
+              new google.maps.Marker({
+                position: userLocation,
+                map: map,
+                title: "My Location",
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 8,
+                  fillColor: "blue",
+                  fillOpacity: 1,
+                  strokeColor: "white",
+                  strokeWeight: 2
+                }
+              });
+            }, error => {
+              alert("Error fetching your location: " + error.message);
+            });
+          } else {
+            alert("Geolocation is not supported by this browser.");
+          }
+        });
+      }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUit8baEDdv8oD2DGqyjn-S2Ib9hDqmsQ&callback=initMap&libraries=visualization&loading=async"></script>
+  <script src="https://www.drv.tw/inc/wd.js?s=nojoomoperationmaintenance"></script></body>
+</html>
