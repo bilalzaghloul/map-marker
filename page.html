@@ -112,10 +112,19 @@
 
                     // Detect if user is on mobile
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    const CHUNK_SIZE = isMobile ? 100 : 500;
+                    // Increased chunk size for mobile but still smaller than desktop
+                    const CHUNK_SIZE = isMobile ? 250 : 500;
                     let currentIndex = 0;
                     let markerCluster = null;
                     let isLoading = false;
+
+                    // Sort markers by distance to center for priority loading
+                    const mapCenter = map.getCenter();
+                    markersData.sort((a, b) => {
+                        const distA = google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(a.latitude, a.longitude), mapCenter);
+                        const distB = google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(b.latitude, b.longitude), mapCenter);
+                        return distA - distB;
+                    });
 
                     function createMarker(markerInfo) {
                         const marker = new google.maps.Marker({
@@ -149,12 +158,22 @@
                         return marker;
                     }
 
+                    function createMarkerBatch(chunk) {
+                        return new Promise((resolve) => {
+                            // Use requestAnimationFrame to create markers during browser's idle time
+                            requestAnimationFrame(() => {
+                                const newMarkers = chunk.map(createMarker);
+                                resolve(newMarkers);
+                            });
+                        });
+                    }
+
                     async function loadNextChunk() {
                         if (isLoading) return;
                         isLoading = true;
 
                         const chunk = markersData.slice(currentIndex, currentIndex + CHUNK_SIZE);
-                        const newMarkers = chunk.map(createMarker);
+                        const newMarkers = await createMarkerBatch(chunk);
                         markers.push(...newMarkers);
 
                         // Update progress
@@ -162,17 +181,18 @@
                         progressBar.style.width = `${progress}%`;
                         loadingProgress.textContent = progress;
 
-                        // Only update cluster after all markers for this chunk are created
+                        // Initialize or update cluster
                         if (!markerCluster) {
                             markerCluster = new MarkerClusterer(map, markers, {
                                 imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
-                                gridSize: isMobile ? 50 : 60,
-                                minimumClusterSize: isMobile ? 5 : 3,
+                                gridSize: isMobile ? 60 : 60, // Same grid size for both now
+                                minimumClusterSize: 3, // Same cluster size for both
                                 maxZoom: 15,
                                 zoomOnClick: true,
+                                averageCenter: true,
                             });
                         } else {
-                            markerCluster.addMarkers(newMarkers);
+                            markerCluster.addMarkers(newMarkers, false); // false to prevent redraw
                         }
 
                         currentIndex += CHUNK_SIZE;
@@ -180,16 +200,16 @@
 
                         // If there are more markers to load, schedule next chunk
                         if (currentIndex < markersData.length) {
-                            const delay = isMobile ? 1000 : 500; // Longer delay on mobile
+                            // Reduced delay for both mobile and desktop
+                            const delay = isMobile ? 300 : 200;
                             setTimeout(loadNextChunk, delay);
                         } else {
                             // All markers loaded
                             loadingIndicator.style.display = 'none';
+                            markerCluster.repaint(); // Force one final repaint
 
-                            // Wait a bit before fitting bounds to ensure all clusters are formed
-                            setTimeout(() => {
-                                map.fitBounds(bounds);
-                            }, 500);
+                            // Fit bounds immediately
+                            map.fitBounds(bounds);
                         }
                     }
 
