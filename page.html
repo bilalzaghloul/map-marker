@@ -42,82 +42,103 @@
         <button id="myLocationButton">My Location</button>
         <script>
             async function initMap() {
-                const response = await fetch('https://map-marker-lilac.vercel.app/data.json');
-                const markersData = await response.json();
+                try {
+                    const response = await fetch('https://map-marker-lilac.vercel.app/data.json');
+                    const markersData = await response.json();
 
-                const map = new google.maps.Map(document.getElementById('map'), {
-                    zoom: 10,
-                    center: { lat: 24.440919168357084, lng: 54.66783553469268 },
-                    mapId: '665db00bdf39b50f',
-                });
-
-                let currentInfoWindow = null; // Track the currently open info window
-
-                // Create markers and info windows for each location
-                const markers = markersData.map((markerInfo) => {
-                    const marker = new google.maps.Marker({
-                        position: { lat: markerInfo.latitude, lng: markerInfo.longitude },
-                        map: map,
-                        title: `Internal ID: ${markerInfo.Internal_ID}`,
-                    });
-
-                    const infoWindow = new google.maps.InfoWindow({
-                        content: `<div style="max-width: 200px; max-height: 300px; overflow-y: auto; line-height: 1.0;">
-                        <h3 style="margin: 4px 0;">Internal ID: ${markerInfo.Internal_ID}</h3>
-                        <p style="margin: 4px 0;">Phase: ${markerInfo.Phase}</p>
-                        <p style="margin: 4px 0;">Zone: ${markerInfo.Zone}</p>
-                        <p style="margin: 4px 0;">Fixture Height: ${markerInfo.Fixture_Height}m</p>
-                        <p style="margin: 4px 0;">Fixtures Per Pole: ${markerInfo.Fixtures_Per_Pole}</p>
-                        <p style="margin: 4px 0;">Part Number: ${markerInfo.Part_Number}</p>
-                      </div>`,
-                    });
-
-                    marker.addListener('click', () => {
-                        if (currentInfoWindow) {
-                            currentInfoWindow.close();
-                        }
-                        infoWindow.open(map, marker);
-                        currentInfoWindow = infoWindow;
-                    });
-
-                    return marker;
-                });
-
-                // Function to center map on user's location
-                const myLocationButton = document.getElementById('myLocationButton');
-                myLocationButton.addEventListener('click', () => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                                const userLocation = {
-                                    lat: position.coords.latitude,
-                                    lng: position.coords.longitude,
-                                };
-                                map.setCenter(userLocation);
-                                map.setZoom(15);
-
-                                new google.maps.Marker({
-                                    position: userLocation,
-                                    map: map,
-                                    title: 'My Location',
-                                    icon: {
-                                        path: google.maps.SymbolPath.CIRCLE,
-                                        scale: 8,
-                                        fillColor: 'blue',
-                                        fillOpacity: 1,
-                                        strokeColor: 'white',
-                                        strokeWeight: 2,
-                                    },
-                                });
-                            },
-                            (error) => {
-                                alert('Error fetching your location: ' + error.message);
-                            }
-                        );
-                    } else {
-                        alert('Geolocation is not supported by this browser.');
+                    if (!Array.isArray(markersData) || markersData.length === 0) {
+                        alert('No marker data available.');
+                        return;
                     }
-                });
+
+                    const map = new google.maps.Map(document.getElementById('map'), {
+                        zoom: 10,
+                        center: { lat: 24.440919168357084, lng: 54.66783553469268 },
+                        mapId: '665db00bdf39b50f',
+                    });
+
+                    let currentInfoWindow = null;
+                    const markers = [];
+
+                    const maxMarkersPerBatch = 200; // Limit the number of markers added at once
+                    let index = 0;
+
+                    function addMarkersBatch() {
+                        const batch = markersData.slice(index, index + maxMarkersPerBatch);
+                        batch.forEach((markerInfo) => {
+                            const marker = new google.maps.Marker({
+                                position: { lat: markerInfo.latitude, lng: markerInfo.longitude },
+                                map: map,
+                                title: `Internal ID: ${markerInfo.Internal_ID}`,
+                            });
+
+                            const infoWindow = new google.maps.InfoWindow({
+                                content: `<div style="max-width: 200px; max-height: 300px; overflow-y: auto; line-height: 1.0;">
+                            <h3 style="margin: 4px 0;">Internal ID: ${markerInfo.Internal_ID}</h3>
+                            <p style="margin: 4px 0;">Phase: ${markerInfo.Phase}</p>
+                            <p style="margin: 4px 0;">Zone: ${markerInfo.Zone}</p>
+                            <p style="margin: 4px 0;">Fixture Height: ${markerInfo.Fixture_Height}m</p>
+                            <p style="margin: 4px 0;">Fixtures Per Pole: ${markerInfo.Fixtures_Per_Pole}</p>
+                            <p style="margin: 4px 0;">Part Number: ${markerInfo.Part_Number}</p>
+                          </div>`,
+                            });
+
+                            marker.addListener('click', () => {
+                                if (currentInfoWindow) {
+                                    currentInfoWindow.close();
+                                }
+                                infoWindow.open(map, marker);
+                                currentInfoWindow = infoWindow;
+                            });
+
+                            markers.push(marker);
+                        });
+
+                        index += maxMarkersPerBatch;
+                        if (index < markersData.length) {
+                            requestAnimationFrame(addMarkersBatch); // Continue loading markers in batches
+                        }
+                    }
+
+                    addMarkersBatch(); // Start adding markers in batches
+
+                    const myLocationButton = document.getElementById('myLocationButton');
+                    myLocationButton.addEventListener('click', () => {
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    const userLocation = {
+                                        lat: position.coords.latitude,
+                                        lng: position.coords.longitude,
+                                    };
+                                    map.setCenter(userLocation);
+                                    map.setZoom(15);
+
+                                    new google.maps.Marker({
+                                        position: userLocation,
+                                        map: map,
+                                        title: 'My Location',
+                                        icon: {
+                                            path: google.maps.SymbolPath.CIRCLE,
+                                            scale: 8,
+                                            fillColor: 'blue',
+                                            fillOpacity: 1,
+                                            strokeColor: 'white',
+                                            strokeWeight: 2,
+                                        },
+                                    });
+                                },
+                                (error) => {
+                                    alert('Error fetching your location: ' + error.message);
+                                }
+                            );
+                        } else {
+                            alert('Geolocation is not supported by this browser.');
+                        }
+                    });
+                } catch (error) {
+                    alert('Error loading marker data: ' + error.message);
+                }
             }
         </script>
         <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUit8baEDdv8oD2DGqyjn-S2Ib9hDqmsQ&callback=initMap"></script>
