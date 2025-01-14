@@ -74,6 +74,87 @@
         </div>
         <script src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"></script>
         <script>
+            // Define makeDraggable function first
+            function makeDraggable(element) {
+                let pos1 = 0,
+                    pos2 = 0,
+                    pos3 = 0,
+                    pos4 = 0;
+                const dragHandle = document.getElementById('dragHandle');
+
+                if (dragHandle) {
+                    dragHandle.onmousedown = dragMouseDown;
+                    dragHandle.ontouchstart = dragTouchStart;
+                } else {
+                    element.onmousedown = dragMouseDown;
+                    element.ontouchstart = dragTouchStart;
+                }
+
+                function dragMouseDown(e) {
+                    e.preventDefault();
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    document.onmouseup = closeDragElement;
+                    document.onmousemove = elementDrag;
+                    element.classList.add('dragging');
+                }
+
+                function dragTouchStart(e) {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    pos3 = touch.clientX;
+                    pos4 = touch.clientY;
+                    document.ontouchend = closeDragElement;
+                    document.ontouchmove = elementTouchDrag;
+                    element.classList.add('dragging');
+                }
+
+                function elementDrag(e) {
+                    e.preventDefault();
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+
+                    const newTop = element.offsetTop - pos2;
+                    const newLeft = element.offsetLeft - pos1;
+
+                    const maxX = window.innerWidth - element.offsetWidth;
+                    const maxY = window.innerHeight - element.offsetHeight;
+
+                    element.style.top = Math.min(Math.max(0, newTop), maxY) + 'px';
+                    element.style.left = Math.min(Math.max(0, newLeft), maxX) + 'px';
+                    element.style.transform = 'none';
+                }
+
+                function elementTouchDrag(e) {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    pos1 = pos3 - touch.clientX;
+                    pos2 = pos4 - touch.clientY;
+                    pos3 = touch.clientX;
+                    pos4 = touch.clientY;
+
+                    const newTop = element.offsetTop - pos2;
+                    const newLeft = element.offsetLeft - pos1;
+
+                    const maxX = window.innerWidth - element.offsetWidth;
+                    const maxY = window.innerHeight - element.offsetHeight;
+
+                    element.style.top = Math.min(Math.max(0, newTop), maxY) + 'px';
+                    element.style.left = Math.min(Math.max(0, newLeft), maxX) + 'px';
+                    element.style.transform = 'none';
+                }
+
+                function closeDragElement() {
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                    document.ontouchend = null;
+                    document.ontouchmove = null;
+                    element.classList.remove('dragging');
+                }
+            }
+
             async function initMap() {
                 try {
                     const map = new google.maps.Map(document.getElementById('map'), {
