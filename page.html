@@ -74,95 +74,6 @@
         </div>
         <script src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"></script>
         <script>
-            // Add draggable functionality
-            function makeDraggable(element) {
-                let pos1 = 0,
-                    pos2 = 0,
-                    pos3 = 0,
-                    pos4 = 0;
-                const dragHandle = document.getElementById('dragHandle');
-
-                if (dragHandle) {
-                    dragHandle.onmousedown = dragMouseDown;
-                    dragHandle.ontouchstart = dragTouchStart;
-                } else {
-                    element.onmousedown = dragMouseDown;
-                    element.ontouchstart = dragTouchStart;
-                }
-
-                function dragMouseDown(e) {
-                    e.preventDefault();
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-                    document.onmouseup = closeDragElement;
-                    document.onmousemove = elementDrag;
-                    element.classList.add('dragging');
-                }
-
-                function dragTouchStart(e) {
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    pos3 = touch.clientX;
-                    pos4 = touch.clientY;
-                    document.ontouchend = closeDragElement;
-                    document.ontouchmove = elementTouchDrag;
-                    element.classList.add('dragging');
-                }
-
-                function elementDrag(e) {
-                    e.preventDefault();
-                    pos1 = pos3 - e.clientX;
-                    pos2 = pos4 - e.clientY;
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-
-                    // Calculate new position
-                    const newTop = element.offsetTop - pos2;
-                    const newLeft = element.offsetLeft - pos1;
-
-                    // Keep element within viewport
-                    const maxX = window.innerWidth - element.offsetWidth;
-                    const maxY = window.innerHeight - element.offsetHeight;
-
-                    element.style.top = Math.min(Math.max(0, newTop), maxY) + 'px';
-                    element.style.left = Math.min(Math.max(0, newLeft), maxX) + 'px';
-                    element.style.transform = 'none';
-                }
-
-                function elementTouchDrag(e) {
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    pos1 = pos3 - touch.clientX;
-                    pos2 = pos4 - touch.clientY;
-                    pos3 = touch.clientX;
-                    pos4 = touch.clientY;
-
-                    const newTop = element.offsetTop - pos2;
-                    const newLeft = element.offsetLeft - pos1;
-
-                    const maxX = window.innerWidth - element.offsetWidth;
-                    const maxY = window.innerHeight - element.offsetHeight;
-
-                    element.style.top = Math.min(Math.max(0, newTop), maxY) + 'px';
-                    element.style.left = Math.min(Math.max(0, newLeft), maxX) + 'px';
-                    element.style.transform = 'none';
-                }
-
-                function closeDragElement() {
-                    document.onmouseup = null;
-                    document.onmousemove = null;
-                    document.ontouchend = null;
-                    document.ontouchmove = null;
-                    element.classList.remove('dragging');
-                }
-            }
-
-            // Initialize draggable loading indicator when the page loads
-            document.addEventListener('DOMContentLoaded', function () {
-                const loadingIndicator = document.getElementById('loadingIndicator');
-                makeDraggable(loadingIndicator);
-            });
-
             async function initMap() {
                 try {
                     const map = new google.maps.Map(document.getElementById('map'), {
@@ -171,23 +82,19 @@
                         mapId: '665db00bdf39b50f',
                         maxZoom: 18,
                         minZoom: 3,
-                        // Add built-in controls
                         zoomControl: true,
                         mapTypeControl: false,
                         scaleControl: true,
                         streetViewControl: false,
                         rotateControl: false,
                         fullscreenControl: true,
-                        // Add the location button to the UI
-                        locationButton: true,
-                        // Customize control positions
                         controlPosition: {
                             TOP_RIGHT: ['fullscreenControl', 'locationButton'],
                             TOP_LEFT: ['zoomControl'],
                         },
                     });
 
-                    // Enable the my-location control
+                    // Location button setup
                     const locationButton = document.createElement('button');
                     locationButton.classList.add('gm-control-active', 'gm-fullscreen-control');
                     locationButton.style.backgroundColor = '#fff';
@@ -201,7 +108,6 @@
                     locationButton.style.height = '40px';
                     locationButton.style.overflow = 'hidden';
 
-                    // Use Google Maps' my location icon
                     locationButton.innerHTML = `
       <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z'/%3E%3C/svg%3E"
         style="width: 20px; height: 20px; margin: 10px;" alt="My Location">
@@ -209,9 +115,9 @@
 
                     map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(locationButton);
 
+                    // Location button click handler
                     locationButton.addEventListener('click', () => {
                         if (navigator.geolocation) {
-                            // Show loading state
                             locationButton.disabled = true;
                             locationButton.style.opacity = '0.5';
 
@@ -221,12 +127,9 @@
                                         lat: position.coords.latitude,
                                         lng: position.coords.longitude,
                                     };
-
-                                    // Smoothly animate to user's location
                                     map.panTo(userLocation);
                                     map.setZoom(15);
 
-                                    // Add a pulsing marker for user's location
                                     const marker = new google.maps.Marker({
                                         position: userLocation,
                                         map: map,
@@ -241,7 +144,6 @@
                                         animation: google.maps.Animation.DROP,
                                     });
 
-                                    // Add accuracy circle
                                     const accuracyCircle = new google.maps.Circle({
                                         map: map,
                                         center: userLocation,
@@ -253,7 +155,6 @@
                                         fillOpacity: 0.1,
                                     });
 
-                                    // Reset button state
                                     locationButton.disabled = false;
                                     locationButton.style.opacity = '1';
                                 },
@@ -277,9 +178,11 @@
                     const progressBar = document.getElementById('progressBar');
                     const loadingProgress = document.getElementById('loadingProgress');
 
+                    // Initialize draggable functionality before showing the loading indicator
+                    makeDraggable(loadingIndicator);
                     loadingIndicator.style.display = 'block';
 
-                    // Rest of your existing code for loading and displaying markers...
+                    // Fetch and process markers
                     const response = await fetch('https://map-marker-lilac.vercel.app/data.json');
                     const markersData = await response.json();
 
@@ -293,16 +196,14 @@
                     const markers = [];
                     const bounds = new google.maps.LatLngBounds();
 
-                    // Detect if user is on mobile
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     const CHUNK_SIZE = isMobile ? 250 : 500;
                     let currentIndex = 0;
                     let markerCluster = null;
                     let isLoading = false;
 
-                    // Simple distance calculation function
                     function distance(lat1, lon1, lat2, lon2) {
-                        const R = 6371; // Radius of the earth in km
+                        const R = 6371;
                         const dLat = ((lat2 - lat1) * Math.PI) / 180;
                         const dLon = ((lon2 - lon1) * Math.PI) / 180;
                         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -310,7 +211,6 @@
                         return R * c;
                     }
 
-                    // Sort markers by distance to center
                     const mapCenter = map.getCenter();
                     markersData.sort((a, b) => {
                         const distA = distance(mapCenter.lat(), mapCenter.lng(), a.latitude, a.longitude);
@@ -366,7 +266,6 @@
                         const newMarkers = await createMarkerBatch(chunk);
                         markers.push(...newMarkers);
 
-                        // Update progress
                         const progress = Math.min(100, Math.round(((currentIndex + CHUNK_SIZE) / markersData.length) * 100));
                         progressBar.style.width = `${progress}%`;
                         loadingProgress.textContent = progress;
@@ -397,44 +296,7 @@
                         }
                     }
 
-                    // Start loading markers
                     await loadNextChunk();
-
-                    // Handle user location
-                    const myLocationButton = document.getElementById('myLocationButton');
-                    myLocationButton.addEventListener('click', () => {
-                        if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition(
-                                (position) => {
-                                    const userLocation = {
-                                        lat: position.coords.latitude,
-                                        lng: position.coords.longitude,
-                                    };
-                                    map.setCenter(userLocation);
-                                    map.setZoom(15);
-
-                                    new google.maps.Marker({
-                                        position: userLocation,
-                                        map: map,
-                                        title: 'My Location',
-                                        icon: {
-                                            path: google.maps.SymbolPath.CIRCLE,
-                                            scale: 8,
-                                            fillColor: 'blue',
-                                            fillOpacity: 1,
-                                            strokeColor: 'white',
-                                            strokeWeight: 2,
-                                        },
-                                    });
-                                },
-                                (error) => {
-                                    alert('Error fetching your location: ' + error.message);
-                                }
-                            );
-                        } else {
-                            alert('Geolocation is not supported by this browser.');
-                        }
-                    });
                 } catch (error) {
                     console.error('Error loading marker data:', error);
                     alert('Error loading marker data: ' + error.message);
